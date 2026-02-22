@@ -1,1 +1,15 @@
-{\n  "name": "classroom-monitoring-web-app",\n  "version": "1.0.0",\n  "description": "A web app for monitoring classroom activity.",\n  "main": "server.js",\n  "scripts": {\n    "start": "node server.js"\n  },\n  "dependencies": {\n    "express": ">=4.17.1",\n    "socket.io": ">=4.0.0"\n  }\n}
+{
+  "name": "classroom-monitoring-web-app",
+  "version": "1.0.0",
+  "description": "A web app for monitoring classroom activity.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": ">=4.17.1",
+    "express-rate-limit": "^7.5.0",
+    "qrcode": "^1.5.4",
+    "socket.io": ">=4.0.0"
+  }
+}

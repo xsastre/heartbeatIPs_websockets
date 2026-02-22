@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classe Monitor – Alumne</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+    }
+    h1 { font-size: 1.4rem; color: #1a202c; margin-bottom: 1.5rem; text-align: center; }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; color: #4a5568; margin-bottom: 0.3rem; }
+    input[type="text"] {
+      width: 100%; padding: 0.6rem 0.8rem;
+      border: 1px solid #cbd5e0; border-radius: 6px; font-size: 1rem;
+    }
+    input[type="text"]:focus {
+      outline: none; border-color: #4299e1;
+      box-shadow: 0 0 0 3px rgba(66,153,225,0.2);
+    }
+    .btn {
+      width: 100%; padding: 0.75rem; border: none; border-radius: 6px;
+      font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 0.5rem;
+      transition: background 0.15s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: #4299e1; color: #fff; }
+    .btn-primary:not(:disabled):hover { background: #3182ce; }
+    .btn-secondary { background: #718096; color: #fff; }
+    .btn-secondary:not(:disabled):hover { background: #4a5568; }
+    .btn-danger { background: #e53e3e; color: #fff; margin-top: 1.25rem; }
+    .btn-danger:hover { background: #c53030; }
+    .error {
+      background: #fff5f5; border: 1px solid #fc8181; color: #c53030;
+      padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem;
+    }
+    #webcam-section { margin-bottom: 1rem; }
+    #video {
+      width: 100%; border-radius: 8px; background: #000;
+      display: block; max-height: 240px; object-fit: cover;
+    }
+    #canvas { display: none; }
+    #photo-preview { width: 100%; border-radius: 8px; display: none; }
+    .cam-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .cam-actions .btn { margin-top: 0; }
+
+    /* Session view */
+    .success-card { text-align: center; }
+    #session-photo {
+      width: 80px; height: 80px; border-radius: 50%; object-fit: cover;
+      margin: 0.5rem auto; display: block; border: 3px solid #4299e1;
+      background: #e2e8f0;
+    }
+    .session-name { font-size: 1.2rem; font-weight: 700; color: #2d3748; margin: 0.5rem 0; }
+    .session-info { font-size: 0.9rem; color: #718096; margin: 0.2rem 0; }
+    .conn-status { display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin-top: 0.75rem; }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; background: #68d391; display: inline-block; }
+    .status-lbl { font-size: 0.85rem; font-weight: 600; color: #2d3748; }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <!-- Registration form -->
+    <div id="register-section">
+      <h1>🎓 Unir-se a la Classe</h1>
+
+      <div id="error-msg" class="error" style="display:none;"></div>
+
+      <div id="webcam-section">
+        <label>Foto (obligatòria)</label>
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+        <img id="photo-preview" alt="Foto capturada">
+        <div class="cam-actions">
+          <button class="btn btn-secondary" id="btn-capture" type="button">📸 Capturar foto</button>
+          <button class="btn btn-secondary" id="btn-retake" type="button" style="display:none;">🔄 Refer</button>
+        </div>
+      </div>
+
+      <form id="register-form">
+        <div class="form-group">
+          <label for="firstName">Nom</label>
+          <input type="text" id="firstName" placeholder="Nom" required autocomplete="given-name">
+        </div>
+        <div class="form-group">
+          <label for="surname">Primer cognom</label>
+          <input type="text" id="surname" placeholder="Primer cognom" required autocomplete="family-name">
+        </div>
+        <div class="form-group">
+          <label for="dni">DNI</label>
+          <input type="text" id="dni" placeholder="12345678A" required
+                 pattern="[0-9]{8}[A-Za-z]" title="8 dígits seguits d'una lletra">
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-submit">Entrar a la classe</button>
+      </form>
+    </div>
+
+    <!-- Active session view -->
+    <div id="session-section" style="display:none;" class="success-card">
+      <h1>✅ Sessió activa</h1>
+      <img id="session-photo" src="" alt="Foto de perfil">
+      <div class="session-name" id="session-name"></div>
+      <div class="session-info" id="session-dni"></div>
+      <div class="conn-status">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-lbl" id="status-lbl">Connectant…</span>
+      </div>
+      <button class="btn btn-danger" id="btn-logout">🚪 Tancar sessió</button>
+    </div>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/student.js"></script>
+</body>
+</html>

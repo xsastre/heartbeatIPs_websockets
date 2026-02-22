@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Professor – Classe Monitor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f0f4f8; }
+
+    header {
+      background: #2d3748; color: #fff;
+      padding: 0.9rem 1.5rem;
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 10;
+    }
+    header h1 { font-size: 1.15rem; }
+    .header-actions { display: flex; gap: 0.75rem; align-items: center; }
+    #count { font-size: 0.85rem; color: #a0aec0; }
+
+    .btn {
+      padding: 0.5rem 1rem; border: none; border-radius: 6px;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary { background: #4299e1; color: #fff; }
+    .btn-primary:hover { background: #3182ce; }
+    .btn-close { background: #e2e8f0; color: #4a5568; }
+    .btn-close:hover { background: #cbd5e0; }
+
+    main { padding: 1.5rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 1rem;
+      max-width: 1300px;
+    }
+
+    .empty-state {
+      text-align: center; color: #a0aec0;
+      padding: 3rem 1rem; grid-column: 1 / -1;
+      font-size: 1rem;
+    }
+
+    /* Student card */
+    .student-card {
+      background: #fff; border-radius: 10px; padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+      border-top: 4px solid #cbd5e0;
+      transition: border-color 0.4s;
+    }
+    .student-card.green  { border-top-color: #48bb78; }
+    .student-card.amber  { border-top-color: #ed8936; }
+    .student-card.red    { border-top-color: #e53e3e; }
+
+    /* Traffic light */
+    .traffic-light { display: flex; gap: 5px; margin-bottom: 2px; }
+    .tl-dot {
+      width: 13px; height: 13px; border-radius: 50%;
+      background: #e2e8f0; transition: background 0.4s;
+    }
+    .student-card.green  .tl-dot.tl-green  { background: #48bb78; }
+    .student-card.amber  .tl-dot.tl-amber  { background: #ed8936; }
+    .student-card.red    .tl-dot.tl-red    { background: #e53e3e; }
+
+    .student-photo {
+      width: 64px; height: 64px; border-radius: 50%;
+      object-fit: cover; border: 2px solid #e2e8f0; background: #e2e8f0;
+    }
+    .student-name { font-weight: 700; font-size: 0.9rem; color: #2d3748; text-align: center; }
+    .student-meta { font-size: 0.75rem; color: #718096; text-align: center; }
+
+    /* QR Modal */
+    #qr-modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    #qr-modal.open { display: flex; }
+    .modal-card {
+      background: #fff; border-radius: 14px; padding: 2rem;
+      max-width: 360px; width: 90%; text-align: center;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+    }
+    .modal-card h2 { margin-bottom: 1rem; color: #2d3748; font-size: 1.15rem; }
+    #qr-image { width: 200px; height: 200px; margin: 0 auto 1rem; display: block; }
+    #qr-url {
+      font-size: 0.72rem; word-break: break-all; color: #4a5568;
+      background: #f7fafc; padding: 0.5rem; border-radius: 4px; margin-bottom: 0.75rem;
+    }
+    #qr-expiry { font-size: 0.82rem; color: #e53e3e; margin-bottom: 1rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>📊 Panel de Monitorització</h1>
+    <div class="header-actions">
+      <span id="count">0 alumnes</span>
+      <button class="btn btn-primary" id="btn-qr">🔑 Generar QR</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="grid" id="students-grid">
+      <p class="empty-state" id="empty-state">
+        Cap alumne connectat.<br>Genera un codi QR per permetre l'accés.
+      </p>
+    </div>
+  </main>
+
+  <!-- QR access modal -->
+  <div id="qr-modal" role="dialog" aria-modal="true" aria-labelledby="qr-title">
+    <div class="modal-card">
+      <h2 id="qr-title">🔑 Codi QR d'accés</h2>
+      <img id="qr-image" src="" alt="Codi QR">
+      <div id="qr-url"></div>
+      <div id="qr-expiry"></div>
+      <button class="btn btn-close" id="btn-close-modal">Tancar</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/panel.js"></script>
+</body>
+</html>
