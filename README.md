@@ -1,85 +1,86 @@
-# Classroom Monitor – Heartbeat IPs via WebSockets
+# Monitor de Classe – Heartbeat IPs via WebSockets
 
-A real-time classroom monitoring web app using Node.js, Express and Socket.IO.
+Aplicacio web de monitoratge de classe en temps real amb Node.js, Express i Socket.IO.
 
-## Features
+## Funcionalitats
 
-- **Student page** – Join via QR token, enter name/surname/DNI, capture webcam photo, keep-alive heartbeat, and close session.
-- **Teacher panel** – Monitor up to 25 students with traffic-light status, webcam thumbnail, IP and DNI.
-- **Traffic light logic** (based on last heartbeat):
-  - 🟢 **Green** – < 2 s
-  - 🟡 **Amber** – 2–3 s
-  - 🔴 **Red**   – ≥ 3 s
-- **HTTPS** – Self-signed certificate support so `getUserMedia` works over LAN.
+- **Pagina de l'alumne** – Entrar amb codi d'acces, nom/cognom/DNI, captura de webcam, heartbeat i tancament de sessio.
+- **Panell del professorat** – Monitoratge de fins a 25 alumnes amb estat tipus semafor, foto de webcam, IP i DNI (emmascarat).
+- **Logica del semafor** (segons l'ultim heartbeat):
+  - 🟢 **Verd** – < 2 s
+  - 🟡 **Ambre** – 2–3 s
+  - 🔴 **Vermell** – ≥ 3 s
+- **HTTPS** – Suport per certificat autosignat perque `getUserMedia` funcioni a la LAN.
 
-## Prerequisites
+## Requisits previs
 
 - Node.js ≥ 14
 - npm
-- openssl (for HTTPS certificate generation)
+- openssl (per generar el certificat HTTPS)
 
-## Setup
+## Configuracio
 
-### 1. Install dependencies
+### 1. Instal·la dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Generate a self-signed certificate (required for webcam over LAN)
+### 2. Genera un certificat autosignat (necessari per a la webcam a la LAN)
 
 ```bash
-# localhost only
+# nomes localhost
 bash scripts/generate-cert.sh
 
-# with your LAN IP (recommended)
+# amb la IP de la teva LAN (recomanat)
 bash scripts/generate-cert.sh 192.168.1.10
 ```
 
-This creates `certs/server.key` and `certs/server.cert` (gitignored).
+Aixo crea `certs/server.key` i `certs/server.cert` (gitignored).
 
-> **First-time browser trust**: navigate to `https://<IP>:3000` (or `https://localhost:3000`) and click **Advanced → Proceed** to accept the self-signed certificate. Students must do the same on their devices before scanning the QR code.
+> **Primera vegada al navegador**: ves a `https://<IP>:3000` (o `https://localhost:3000`) i accepta el certificat autosignat. Els alumnes han de fer el mateix als seus dispositius.
 
-### 3. Run the server
+### 3. Engega el servidor
 
 ```bash
 npm start
 ```
 
-The server starts on port **3000** (HTTPS if certs exist, HTTP otherwise).
+El servidor s'inicia al port **3000** (HTTPS si hi ha certificats; HTTP si no n'hi ha).
 
-## Access
+## Accessos
 
-| Page              | URL                                    |
-|-------------------|----------------------------------------|
-| Teacher panel     | `https://<LAN-IP>:3000/panel`          |
-| Student join page | Via QR code generated in the panel     |
+| Pagina            | URL                            |
+|-------------------|--------------------------------|
+| Panell professor  | `https://<LAN-IP>:3000/panel`  |
+| Pagina alumne     | `https://<LAN-IP>:3000/join`   |
 
-## Usage
+## Us
 
-1. Open the teacher panel on your device.
-2. Click **"Generar QR"** to create a 10-minute access token and display the QR code.
-3. Students scan the QR, accept the certificate warning, allow camera access, take a photo and fill in their name/surname/DNI.
-4. The panel updates in real-time.
-5. Students click **"Tancar sessió"** to leave. The session is automatically removed after 30 s of inactivity.
+1. Obre el panell del professorat.
+2. Llegeix el **codi d'acces** que apareix al capçal i comparteix-lo amb la classe.
+3. Els alumnes entren a `/join`, accepten el certificat, permeten la camera i introdueixen el codi.
+4. El panell s'actualitza en temps real.
+5. Si cal, prem **"Nou codi"** per regenerar-lo i invalidar l'anterior.
+6. Els alumnes poden **"Tancar sessio"**. La sessio s'elimina despres de 30 s d'inactivitat.
 
-## Project structure
+## Estructura del projecte
 
 ```
-├── server.js               # Express + Socket.IO server
+├── server.js               # Servidor Express + Socket.IO
 ├── public/
-│   ├── student.html        # Student join page
-│   ├── student.js          # Student-side logic (webcam, heartbeat, localStorage)
-│   ├── panel.html          # Teacher monitoring dashboard
-│   └── panel.js            # Panel-side logic (live grid, QR modal)
+│   ├── student.html        # Pagina d'entrada de l'alumne
+│   ├── student.js          # Logica de l'alumne (webcam, heartbeat, localStorage)
+│   ├── panel.html          # Tauler de monitoratge del professorat
+│   └── panel.js            # Logica del panell (graella en temps real)
 ├── scripts/
-│   └── generate-cert.sh    # Self-signed certificate generator
-├── certs/                  # Generated certificates (gitignored)
+│   └── generate-cert.sh    # Generador de certificat autosignat
+├── certs/                  # Certificats generats (gitignored)
 └── package.json
 ```
 
-## Environment variables
+## Variables d'entorn
 
-| Variable | Default | Description  |
+| Variable | Defecte | Descripcio   |
 |----------|---------|--------------|
-| `PORT`   | `3000`  | Server port  |
+| `PORT`   | `3000`  | Port del servidor |

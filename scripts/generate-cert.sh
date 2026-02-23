@@ -29,3 +29,5 @@ echo "    Cert: ${CERT_DIR}/server.cert"
 if [ -n "$LAN_IP" ]; then
   echo "    Includes SAN for IP: ${LAN_IP}"
 fi
+
+

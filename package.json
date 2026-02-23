@@ -9,7 +9,6 @@
   "dependencies": {
     "express": ">=4.17.1",
     "express-rate-limit": "^7.5.0",
-    "qrcode": "^1.5.4",
     "socket.io": ">=4.0.0"
   }
 }

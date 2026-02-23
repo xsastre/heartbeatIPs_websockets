@@ -5,19 +5,46 @@ const https = require('https');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const { Server } = require('socket.io');
-const QRCode = require('qrcode');
 const rateLimit = require('express-rate-limit');
 
 const PORT = process.env.PORT || 3000;
+
+function generateJoinCode() {
+  const min = 100000;
+  const max = 999999;
+  return String(Math.floor(Math.random() * (max - min + 1)) + min);
+}
+
+let currentJoinCode = generateJoinCode();
+
+// Basic CSP to avoid default-src 'none' and allow same-origin Socket.IO + data URLs
+const CSP_HEADER = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "connect-src 'self' ws: wss:",
+  "font-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'self'",
+].join('; ');
 
 // Limit page requests: 60 per minute per IP
 const pageLimiter = rateLimit({ windowMs: 60 * 1000, max: 60 });
 
 const app = express();
+app.use((_, res, next) => {
+  res.setHeader('Content-Security-Policy', CSP_HEADER);
+  next();
+});
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/', pageLimiter, (_req, res) => {
+  res.redirect('/panel');
+});
 
 app.get('/join', pageLimiter, (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'student.html'));
@@ -31,26 +58,11 @@ app.get('/panel', pageLimiter, (_req, res) => {
 // sessionId -> { sessionId, firstName, surname, dni, ip, photo, lastSeen, socketId }
 const sessions = new Map();
 const dniIndex = new Map(); // normalised-dni -> sessionId
-const tokens   = new Map(); // token -> expiry timestamp (ms)
 
 function getClientIP(socket) {
   const forwarded = socket.handshake.headers['x-forwarded-for'];
   if (forwarded) return forwarded.split(',')[0].trim();
   return socket.handshake.address;
-}
-
-function generateToken() {
-  return crypto.randomBytes(16).toString('hex');
-}
-
-function isTokenValid(token) {
-  const expiry = tokens.get(token);
-  if (!expiry) return false;
-  if (Date.now() > expiry) {
-    tokens.delete(token);
-    return false;
-  }
-  return true;
 }
 
 function getStatus(lastSeen) {
@@ -108,22 +120,11 @@ function broadcastStudents() {
 panelNS.on('connection', (socket) => {
   // Send current list immediately to the newly connected panel
   socket.emit('panel:students', Array.from(sessions.values()).map(sessionToDTO));
+  socket.emit('panel:join-code', { code: currentJoinCode });
 
-  socket.on('panel:generate-token', async () => {
-    const token  = generateToken();
-    const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes
-    tokens.set(token, expiry);
-
-    const host     = socket.handshake.headers.host || `localhost:${PORT}`;
-    const protocol = useHTTPS ? 'https' : 'http';
-    const url      = `${protocol}://${host}/join?token=${token}`;
-
-    try {
-      const qr = await QRCode.toDataURL(url);
-      socket.emit('panel:token', { token, url, qr, expiry });
-    } catch (err) {
-      console.error('QR generation error:', err);
-    }
+  socket.on('panel:regenerate-code', () => {
+    currentJoinCode = generateJoinCode();
+    panelNS.emit('panel:join-code', { code: currentJoinCode });
   });
 });
 
@@ -131,11 +132,9 @@ panelNS.on('connection', (socket) => {
 studentNS.on('connection', (socket) => {
   const ip = getClientIP(socket);
 
-  socket.on('student:register', ({ sessionId, firstName, surname, dni, photo, token }) => {
-    if (!isTokenValid(token)) {
-      socket.emit('student:error', {
-        message: 'Token invàlid o caducat. Demana un nou codi QR al professor.',
-      });
+  socket.on('student:register', ({ sessionId, firstName, surname, dni, photo, joinCode }) => {
+    if (!joinCode || String(joinCode).trim() !== currentJoinCode) {
+      socket.emit('student:error', { message: 'Codi d\'accés incorrecte.' });
       return;
     }
 
@@ -164,6 +163,7 @@ studentNS.on('connection', (socket) => {
     dniIndex.set(normDNI, sessionId);
 
     socket.emit('student:registered', { sessionId });
+    socket.emit('student:heartbeat-ack', { lastSeen: session.lastSeen, status: getStatus(session.lastSeen) });
     broadcastStudents();
   });
 
@@ -173,6 +173,7 @@ studentNS.on('connection', (socket) => {
       s.lastSeen = Date.now();
       s.socketId = socket.id;
       s.ip       = ip; // refresh IP on reconnect
+      socket.emit('student:heartbeat-ack', { lastSeen: s.lastSeen, status: getStatus(s.lastSeen) });
     }
   });
 
@@ -211,4 +212,5 @@ server.listen(PORT, '0.0.0.0', () => {
   const proto = useHTTPS ? 'https' : 'http';
   console.log(`Server running at ${proto}://localhost:${PORT}`);
   console.log(`Panel: ${proto}://localhost:${PORT}/panel`);
+  console.log(`Join code: ${currentJoinCode}`);
 });

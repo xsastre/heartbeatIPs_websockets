@@ -96,6 +96,10 @@
 
       <form id="register-form">
         <div class="form-group">
+          <label for="joinCode">Codi d'accés</label>
+          <input type="text" id="joinCode" placeholder="123456" required inputmode="numeric" autocomplete="one-time-code">
+        </div>
+        <div class="form-group">
           <label for="firstName">Nom</label>
           <input type="text" id="firstName" placeholder="Nom" required autocomplete="given-name">
         </div>
@@ -118,6 +122,7 @@
       <img id="session-photo" src="" alt="Foto de perfil">
       <div class="session-name" id="session-name"></div>
       <div class="session-info" id="session-dni"></div>
+      <div class="session-info" id="session-last-contact"></div>
       <div class="conn-status">
         <span class="status-dot" id="status-dot"></span>
         <span class="status-lbl" id="status-lbl">Connectant…</span>

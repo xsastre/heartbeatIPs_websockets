@@ -71,56 +71,32 @@
     }
     .student-name { font-weight: 700; font-size: 0.9rem; color: #2d3748; text-align: center; }
     .student-meta { font-size: 0.75rem; color: #718096; text-align: center; }
-
-    /* QR Modal */
-    #qr-modal {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.55); z-index: 200;
-      align-items: center; justify-content: center;
+    .student-last-contact {
+      font-size: 0.7rem;
+      color: #4a5568;
+      margin-top: 0.25rem;
+      text-align: center;
     }
-    #qr-modal.open { display: flex; }
-    .modal-card {
-      background: #fff; border-radius: 14px; padding: 2rem;
-      max-width: 360px; width: 90%; text-align: center;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.25);
-    }
-    .modal-card h2 { margin-bottom: 1rem; color: #2d3748; font-size: 1.15rem; }
-    #qr-image { width: 200px; height: 200px; margin: 0 auto 1rem; display: block; }
-    #qr-url {
-      font-size: 0.72rem; word-break: break-all; color: #4a5568;
-      background: #f7fafc; padding: 0.5rem; border-radius: 4px; margin-bottom: 0.75rem;
-    }
-    #qr-expiry { font-size: 0.82rem; color: #e53e3e; margin-bottom: 1rem; font-weight: 600; }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>📊 Panel de Monitorització</h1>
+    <h1>Monitorització</h1>
     <div class="header-actions">
       <span id="count">0 alumnes</span>
-      <button class="btn btn-primary" id="btn-qr">🔑 Generar QR</button>
+      <span id="join-code" class="btn btn-close" style="cursor:default;"></span>
+      <button class="btn btn-primary" id="btn-new-code">Nou codi</button>
     </div>
   </header>
 
   <main>
     <div class="grid" id="students-grid">
       <p class="empty-state" id="empty-state">
-        Cap alumne connectat.<br>Genera un codi QR per permetre l'accés.
+        Cap alumne connectat.<br>Esperant connexions.
       </p>
     </div>
   </main>
-
-  <!-- QR access modal -->
-  <div id="qr-modal" role="dialog" aria-modal="true" aria-labelledby="qr-title">
-    <div class="modal-card">
-      <h2 id="qr-title">🔑 Codi QR d'accés</h2>
-      <img id="qr-image" src="" alt="Codi QR">
-      <div id="qr-url"></div>
-      <div id="qr-expiry"></div>
-      <button class="btn btn-close" id="btn-close-modal">Tancar</button>
-    </div>
-  </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/panel.js"></script>

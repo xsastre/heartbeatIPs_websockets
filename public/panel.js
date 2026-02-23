@@ -5,49 +5,17 @@
   const grid         = document.getElementById('students-grid');
   const emptyState   = document.getElementById('empty-state');
   const countEl      = document.getElementById('count');
-  const btnQr        = document.getElementById('btn-qr');
-  const qrModal      = document.getElementById('qr-modal');
-  const qrImage      = document.getElementById('qr-image');
-  const qrUrl        = document.getElementById('qr-url');
-  const qrExpiry     = document.getElementById('qr-expiry');
-  const btnClose     = document.getElementById('btn-close-modal');
-
-  let expiryTimer = null;
+  const joinCodeEl   = document.getElementById('join-code');
+  const btnNewCode   = document.getElementById('btn-new-code');
 
   // ---- Socket events ----
   socket.on('panel:students', renderStudents);
-
-  socket.on('panel:token', ({ url, qr, expiry }) => {
-    qrImage.src = qr;
-    qrUrl.textContent = url;
-    openModal();
-    startExpiryCountdown(expiry);
+  socket.on('panel:join-code', ({ code }) => {
+    if (joinCodeEl) joinCodeEl.textContent = `Codi: ${code}`;
   });
 
-  // ---- Buttons ----
-  btnQr.addEventListener('click', () => socket.emit('panel:generate-token'));
-
-  btnClose.addEventListener('click', closeModal);
-
-  // close on backdrop click
-  qrModal.addEventListener('click', (e) => { if (e.target === qrModal) closeModal(); });
-
-  // ---- Modal helpers ----
-  function openModal()  { qrModal.classList.add('open'); }
-  function closeModal() {
-    qrModal.classList.remove('open');
-    if (expiryTimer) { clearInterval(expiryTimer); expiryTimer = null; }
-  }
-
-  function startExpiryCountdown(expiry) {
-    if (expiryTimer) clearInterval(expiryTimer);
-    function tick() {
-      const remaining = Math.max(0, Math.round((expiry - Date.now()) / 1000));
-      qrExpiry.textContent = remaining > 0 ? `Caduca en ${remaining}s` : 'Caducat';
-      if (remaining === 0) { clearInterval(expiryTimer); expiryTimer = null; }
-    }
-    tick();
-    expiryTimer = setInterval(tick, 1000);
+  if (btnNewCode) {
+    btnNewCode.addEventListener('click', () => socket.emit('panel:regenerate-code'));
   }
 
   // ---- Student grid rendering ----
@@ -55,6 +23,17 @@
     if (status === 'green') return 'green';
     if (status === 'amber') return 'amber';
     return 'red';
+  }
+
+  function maskDni(dni) {
+    const value = String(dni || '');
+    if (value.length <= 2) return value;
+    return `...${value.slice(-3)}`;
+  }
+
+  function formatAgeSeconds(lastSeen) {
+    const age = Math.max(0, (Date.now() - lastSeen) / 1000);
+    return `${age.toFixed(1)} s`;
   }
 
   function renderStudents(students) {
@@ -90,7 +69,8 @@
           '<img class="student-photo" src="" alt="Foto">' +
           '<div class="student-name"></div>' +
           '<div class="student-meta student-dni"></div>' +
-          '<div class="student-meta student-ip"></div>';
+          '<div class="student-meta student-ip"></div>' +
+          '<div class="student-last-contact"></div>';
         grid.appendChild(card);
       }
 
@@ -101,8 +81,10 @@
       if (student.photo && img.src !== student.photo) img.src = student.photo;
 
       card.querySelector('.student-name').textContent = `${student.firstName} ${student.surname}`;
-      card.querySelector('.student-dni').textContent  = `DNI: ${student.dni}`;
+      card.querySelector('.student-dni').textContent  = `DNI: ${maskDni(student.dni)}`;
       card.querySelector('.student-ip').textContent   = `IP: ${student.ip}`;
+      card.querySelector('.student-last-contact').textContent =
+        `Ultim contacte: ${formatAgeSeconds(student.lastSeen)}`;
     });
   }
 

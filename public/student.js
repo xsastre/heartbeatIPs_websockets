@@ -18,17 +18,18 @@
   const sessionPhoto    = document.getElementById('session-photo');
   const sessionName     = document.getElementById('session-name');
   const sessionDni      = document.getElementById('session-dni');
+  const sessionLast     = document.getElementById('session-last-contact');
   const statusDot       = document.getElementById('status-dot');
   const statusLbl       = document.getElementById('status-lbl');
   const btnLogout       = document.getElementById('btn-logout');
 
   // ---- State ----
-  const params    = new URLSearchParams(window.location.search);
-  const urlToken  = params.get('token');
   let socket      = null;
   let hbTimer     = null;
   let photoData   = null; // base64 thumbnail (in-page memory only)
   let camStream   = null;
+  let lastSeenMs  = null;
+  let ageTimer    = null;
 
   // ---- Storage helpers ----
   function loadSession() {
@@ -70,6 +71,36 @@
     sessionDni.textContent  = `DNI: ${s.dni}`;
     if (s.photo) { sessionPhoto.src = s.photo; }
   }
+  function setStatusByAge(ageSeconds) {
+    if (ageSeconds < 2) {
+      statusDot.style.background = '#68d391';
+      statusLbl.textContent = 'Verd';
+      return;
+    }
+    if (ageSeconds < 3) {
+      statusDot.style.background = '#ed8936';
+      statusLbl.textContent = 'Ambre';
+      return;
+    }
+    statusDot.style.background = '#e53e3e';
+    statusLbl.textContent = 'Vermell';
+  }
+
+  function updateLastContactUI() {
+    if (!sessionLast || lastSeenMs === null) return;
+    const ageSeconds = Math.max(0, (Date.now() - lastSeenMs) / 1000);
+    sessionLast.textContent = `Ultim contacte: ${ageSeconds.toFixed(1)} s`;
+    setStatusByAge(ageSeconds);
+  }
+
+  function startAgeTimer() {
+    if (ageTimer) clearInterval(ageTimer);
+    ageTimer = setInterval(updateLastContactUI, 100);
+  }
+
+  function stopAgeTimer() {
+    if (ageTimer) { clearInterval(ageTimer); ageTimer = null; }
+  }
 
   // ---- Camera ----
   async function startCamera() {
@@ -101,10 +132,16 @@
   function connectSocket(onReady) {
     socket = io('/student', { reconnection: true });
     socket.on('connect',    () => { setConnected(true);  if (onReady) { onReady(); onReady = null; } });
-    socket.on('disconnect', () => setConnected(false));
+    socket.on('disconnect', () => { setConnected(false); });
     socket.on('student:error',      ({ message }) => showError(message));
+    socket.on('student:heartbeat-ack', ({ lastSeen }) => {
+      lastSeenMs = lastSeen;
+      updateLastContactUI();
+      startAgeTimer();
+    });
     socket.on('student:logged-out', () => {
       stopHeartbeat();
+      stopAgeTimer();
       clearSession();
       socket.disconnect();
       window.location.href = '/';
@@ -144,19 +181,20 @@
     e.preventDefault();
     hideError();
 
-    if (!urlToken) {
-      showError("Falta el token d'accés. Escaneja el codi QR del professor.");
-      return;
-    }
     if (!photoData) {
       showError('Has de capturar una foto abans d\'entrar.');
       return;
     }
 
+    const joinCode  = document.getElementById('joinCode').value.trim();
     const firstName = document.getElementById('firstName').value.trim();
     const surname   = document.getElementById('surname').value.trim();
     const dni       = document.getElementById('dni').value.trim().toUpperCase();
 
+    if (!joinCode) {
+      showError('Introdueix el codi d\'accés.');
+      return;
+    }
     if (!firstName || !surname || !dni) {
       showError('Omple tots els camps.');
       return;
@@ -164,13 +202,13 @@
 
     btnSubmit.disabled = true;
     const sessionId = makeSessionId();
-    const payload   = { sessionId, firstName, surname, dni, photo: photoData, token: urlToken };
+    const payload   = { sessionId, firstName, surname, dni, photo: photoData, joinCode };
 
     connectSocket(() => {
       socket.emit('student:register', payload);
 
       socket.once('student:registered', () => {
-        saveSession({ sessionId, firstName, surname, dni, photo: photoData });
+        saveSession({ sessionId, firstName, surname, dni, photo: photoData, joinCode });
         stopCamera();
         showSessionView({ firstName, surname, dni, photo: photoData });
         startHeartbeat(sessionId);
@@ -185,6 +223,7 @@
   btnLogout.addEventListener('click', () => {
     const s = loadSession();
     stopHeartbeat();
+    stopAgeTimer();
     if (socket) {
       if (s) socket.emit('student:logout', { sessionId: s.sessionId });
       socket.disconnect();
@@ -200,9 +239,6 @@
     showSessionView(existing);
     connectSocket(() => startHeartbeat(existing.sessionId));
   } else {
-    if (!urlToken) {
-      showError("Falta el token d'accés. Escaneja el codi QR del professor per unir-te a la classe.");
-    }
     startCamera();
   }
 
